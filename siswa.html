@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siswa - Belajar Inovasi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print { body * { visibility: hidden; } #printArea, #printArea * { visibility: visible; } #printArea { position: absolute; left: 0; top: 0; width: 100%; } }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen pb-12 font-sans">
+    
+    <div class="bg-gradient-to-r from-blue-700 to-blue-900 text-white px-6 pt-10 pb-28 rounded-b-[2.5rem] shadow-lg relative">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+        <div class="flex justify-between items-center relative z-10">
+            <div>
+                <p class="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">Portal Siswa</p>
+                <h1 class="text-2xl font-extrabold" id="siswaName">Loading...</h1>
+                <p class="text-sm font-medium mt-1 bg-white/20 inline-block px-3 py-1 rounded-full backdrop-blur-sm border border-white/20" id="siswaNIS">NIS: -</p>
+            </div>
+            <button onclick="logout()" class="p-3 bg-red-500/90 rounded-2xl hover:bg-red-500 transition shadow-lg border border-red-400">🚪</button>
+        </div>
+    </div>
+
+    <main class="max-w-md mx-auto px-5 -mt-16 relative z-20 space-y-5">
+        
+        <a href="index.html" class="flex items-center justify-between bg-white rounded-2xl p-5 shadow-lg border border-slate-100 text-slate-800 font-extrabold hover:bg-slate-50 transition group">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-2xl group-hover:scale-110 transition">📷</div>
+                <span>Scan Absensi Kamera</span>
+            </div>
+            <span class="text-blue-500 bg-blue-50 p-2 rounded-lg group-hover:translate-x-1 transition">→</span>
+        </a>
+
+        <h2 class="text-slate-700 font-bold px-1 mt-4">Akumulasi Kehadiran (Semester Ini)</h2>
+        <div class="grid grid-cols-2 gap-3 mb-6">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 border-l-4 border-l-blue-500">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Total Hari Aktif</p>
+                <h4 class="text-2xl font-black text-gray-800 mt-1" id="s-aktif">0</h4>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 border-l-4 border-l-green-500">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Hadir Masuk</p>
+                <h4 class="text-2xl font-black text-green-600 mt-1" id="s-masuk">0</h4>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 border-l-4 border-l-yellow-500">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Izin / Sakit</p>
+                <h4 class="text-2xl font-black text-yellow-600 mt-1" id="s-izin">0</h4>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 border-l-4 border-l-red-500">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Alpha (Tanpa Ket)</p>
+                <h4 class="text-2xl font-black text-red-600 mt-1" id="s-alpha">0</h4>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 mt-2">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600 text-lg">🖨️</div>
+                <h3 class="font-extrabold text-slate-800">Cetak Laporan Saya</h3>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="cetakRekap('bulan')" class="w-full bg-indigo-50 text-indigo-700 py-3 rounded-xl font-bold hover:bg-indigo-600 hover:text-white border border-indigo-100 transition text-sm shadow-sm">Bulan Ini</button>
+                <button onclick="cetakRekap('semester')" class="w-full bg-emerald-50 text-emerald-700 py-3 rounded-xl font-bold hover:bg-emerald-600 hover:text-white border border-emerald-100 transition text-sm shadow-sm">Semester Ini</button>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="printArea" class="hidden bg-white"></div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbzvIncRef44NK6ayX0F7TSht0qTYVEwZszpzVRxSd7nHOCU01bg3yuuOyI6VbHDG4Oq/exec"; 
+        const API_KEY = "belajarinovasi_123";
+        const session = JSON.parse(localStorage.getItem('userSession'));
+        
+        if (!session || session.role !== 'siswa') window.location.href = 'login.html';
+        document.getElementById('siswaName').innerText = session.identitas;
+        document.getElementById('siswaNIS').innerText = "NIS: " + session.username;
+
+        // Load Personal Stats
+        window.onload = async () => {
+            try {
+                const res = await fetch(API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: 'get_all_stats', api_key: API_KEY, role: 'siswa', username: session.username }) 
+                });
+                const r = await res.json();
+                if(r.success) {
+                    const d = r.data.sem; // Ambil data akumulasi semester
+                    document.getElementById('s-aktif').innerText = r.data.hari_aktif;
+                    document.getElementById('s-masuk').innerText = d.m;
+                    document.getElementById('s-izin').innerText = d.i + d.s; // Gabungan izin & sakit
+                    document.getElementById('s-alpha').innerText = d.a;
+                }
+            } catch (e) { console.error("Gagal muat stats pribadi"); }
+        };
+
+        function getDates(tipe) {
+            const now = new Date();
+            let start, end = now.toISOString().split('T')[0];
+            if (tipe === 'bulan') start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+            else { 
+                const sixMonthsAgo = new Date();
+                sixMonthsAgo.setMonth(now.getMonth() - 6);
+                start = sixMonthsAgo.toISOString().split('T')[0];
+            }
+            return { start, end };
+        }
+
+        async function cetakRekap(tipe) {
+            const { start, end } = getDates(tipe);
+            document.body.style.cursor = 'wait';
+
+            try {
+                // Backend men-filter otomatis berdasarkan NIS Siswa yang login
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'get_rekap', api_key: API_KEY, startDate: start, endDate: end, filterNIS: session.username })});
+                const result = await res.json();
+
+                if(result.success) {
+                    const printArea = document.getElementById('printArea');
+                    let html = `
+                    <div class="p-8 bg-white text-black font-sans">
+                        <div class="text-center border-b-2 border-slate-800 pb-4 mb-6">
+                            <h2 class="text-xl font-extrabold uppercase">Laporan Kehadiran Siswa Pribadi</h2>
+                            <h3 class="text-md font-bold">Lembaga Pendidikan Belajar Inovasi</h3>
+                        </div>
+                        <table class="text-sm font-bold mb-4 w-full">
+                            <tr><td class="w-24">Nama Siswa</td><td>: ${session.identitas}</td></tr>
+                            <tr><td>NIS</td><td>: ${session.username}</td></tr>
+                            <tr><td>Periode</td><td>: ${start} s/d ${end}</td></tr>
+                        </table>
+                        <table class="w-full border-collapse border border-slate-800 text-sm text-left">
+                            <thead><tr class="bg-slate-200"><th class="border border-slate-800 p-2">Tanggal</th><th class="border border-slate-800 p-2">Masuk</th><th class="border border-slate-800 p-2">Pulang</th><th class="border border-slate-800 p-2">Status</th></tr></thead>
+                            <tbody>`;
+                    result.data.forEach(d => {
+                        html += `<tr><td class="border border-slate-800 p-2">${d.tanggal}</td><td class="border border-slate-800 p-2 font-mono text-center">${d.masuk}</td><td class="border border-slate-800 p-2 font-mono text-center">${d.pulang}</td><td class="border border-slate-800 p-2 font-bold">${d.status}</td></tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                    printArea.innerHTML = html; printArea.classList.remove('hidden');
+                    window.print(); printArea.classList.add('hidden');
+                } else alert("Tidak ada data kehadiran di periode ini.");
+            } catch (e) { alert("Error Server"); }
+            document.body.style.cursor = 'default';
+        }
+
+        function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+    </script>
+</body>
+</html>
